@@ -12,6 +12,7 @@ from sim_transfer.sims.util import encode_angles_numpy as encode_angles, decode_
 from typing import Dict, Tuple, Any
 from sim_transfer.sims.car_system import CarReward
 from sim_transfer.rl.rl_on_offline_data import RLFromOfflineData
+from brax.envs.base import PipelineEnv, State, Env, base
 from experiments.online_rl_hardware.utils import set_up_dummy_sac_trainer
 
 X_MIN_LIMIT = -1.4
@@ -74,8 +75,8 @@ def get_policy(num_frame_stack: int = 3, encode_angle: bool = True):
     return policy
 
 
-class CarEnv(gym.Env):
-    max_steps: int = 200
+class CarEnvWtc(gym.Env):
+    max_steps: int = 250
     _goal: np.array = np.array([0.0, 0.0, 0.0])
     _angle_idx: int = 2
     _init_state: np.array = np.array([1.42, -1.04, np.pi]) # np.array([1.4, -1.099, np.pi]) #
@@ -218,12 +219,10 @@ class CarEnv(gym.Env):
         self.controller_started = False
 
     ## we adapt this for TaCoS now, by using time component as well
-    def step(self, action: np.array) -> Tuple[np.array, float, bool, Dict[str, Any]]:
-        """ Performs one step on the real car (sends commands to)
-
+    def step(self, state: Optional[State],  action: jax.array) -> Tuple[np.array, float, bool, Dict[str, Any]]:
+        """ Performs one step on the real car (sends commands to hardware)
         Args:
-            action: numpy array of shape (2,) with [steer, throttle]
-            For TaCoS: action: numpy array of shape (3,) with [steer, throttle, duration]
+            For TaCoS: action: numpy array of shape (3,) with [steer, throttle, apply_duration]
         """
 
         # update time

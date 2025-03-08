@@ -123,9 +123,10 @@ def run_with_learned_policy(policy_params,
     car_reward_kwargs = reward_config
 
     num_frame_stack = 3
-    action_dim = 2
+    action_dim = 3 # includes time component now
     state_dim = 6 + int(encode_angle)
 
+    # FIX (Arnav): Adapt this to use PPO params
     rl_from_offline_data = RLFromOfflineData(
         sac_kwargs=SAC_KWARGS,
         x_train=jnp.zeros((10, state_dim + (num_frame_stack + 1) * action_dim)),
@@ -148,10 +149,19 @@ def run_with_learned_policy(policy_params,
     #             control_time_ms=27.9)
     env = CarEnv(car_id=2, encode_angle=encode_angle, max_throttle=0.4, control_time_ms=control_time_ms,
                  num_frame_stacks=3, car_reward_kwargs=car_reward_kwargs)
-    obs, _ = env.reset()
+
+    # wrap using wtc SwitchCostWrapper
+    env = IHSwitchCostWrapper(env=env,
+                              num_integrator_steps=250, # 250 episode_steps
+                              min_time_between_switches=1 * env.dt,
+                              max_time_between_switches=10 * env.dt,
+                              switch_cost=ConstantSwitchCost(value=jnp.array(0.0)), #since we are using an evaluation mode, no switch cost
+                              discounting=1.0,
+                              time_as_part_of_state=True ) #this was done while training
+
+    obs = env.reset()
     print(obs)
     observations = []
-    env.step(np.zeros(2))
     t_prev = time.time()
     actions = []
 
@@ -176,7 +186,7 @@ def run_with_learned_policy(policy_params,
     for i in range(200):
         action = np.array(policy(obs))
         actions.append(action)
-        obs, reward, terminate, info = env.step(action)
+        obs, reward, terminate, info = env.step(None, action)
         t = time.time()
         time_diff = t - t_prev
         t_prev = t
