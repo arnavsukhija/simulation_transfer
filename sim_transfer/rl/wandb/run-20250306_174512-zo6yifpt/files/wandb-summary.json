@@ -1,0 +1,1 @@
+{"_timestamp":1.74127951739659e+09,"eval/walltime":1.0578076839447021,"eval/epoch_eval_time":1.0578076839447021,"_runtime":4.741693,"_step":0,"_wandb":{"runtime":16},"eval/avg_episode_length":200,"eval/sps":189.07028473661114,"eval/episode_reward":2.0191309452056885,"eval/episode_reward_std":0}

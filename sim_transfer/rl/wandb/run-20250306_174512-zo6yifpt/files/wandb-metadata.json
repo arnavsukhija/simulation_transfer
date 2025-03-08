@@ -1,0 +1,35 @@
+{
+  "os": "macOS-15.3.1-x86_64-i386-64bit-Mach-O",
+  "python": "CPython 3.13.0",
+  "startedAt": "2025-03-06T16:45:12.655294Z",
+  "program": "/Users/arnavsukhija/Library/CloudStorage/OneDrive-ETHZurich/Thesis/code/simulation_transfer/sim_transfer/rl/rac_car_ppo.py",
+  "codePath": "sim_transfer/rl/rac_car_ppo.py",
+  "git": {
+    "remote": "git@github.com:arnavsukhija/simulation_transfer.git",
+    "commit": "547fa140e9342eb62a46408364a595b954c3e779"
+  },
+  "email": "arnavsonic@gmail.com",
+  "root": "/Users/arnavsukhija/Library/CloudStorage/OneDrive-ETHZurich/Thesis/code/simulation_transfer/sim_transfer/rl",
+  "host": "student-net-cx-2532.intern.ethz.ch",
+  "executable": "/Users/arnavsukhija/Library/CloudStorage/OneDrive-ETHZurich/Thesis/code/simulation_transfer/venv/bin/python",
+  "codePathLocal": "rac_car_ppo.py",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "disk": {
+    "/": {
+      "total": "1000240963584",
+      "used": "330542563328"
+    },
+    "/System/Volumes/Data": {
+      "total": "1000240963584",
+      "used": "330542563328"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "cpu": {
+    "count": 8,
+    "countLogical": 16
+  }
+}

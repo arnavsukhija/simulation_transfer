@@ -217,26 +217,41 @@ class CarEnv(gym.Env):
         self.log_mocap_info()
         self.controller_started = False
 
+    ## we adapt this for TaCoS now, by using time component as well
     def step(self, action: np.array) -> Tuple[np.array, float, bool, Dict[str, Any]]:
         """ Performs one step on the real car (sends commands to)
 
         Args:
             action: numpy array of shape (2,) with [steer, throttle]
+            For TaCoS: action: numpy array of shape (3,) with [steer, throttle, duration]
         """
 
         # update time
         self.env_steps += 1
         # check, clip and rescale actions
-        assert np.shape(action) == (2,)
-        action = np.clip(action, -1.0, 1.0)
+        assert np.shape(action) == (3,) #includes the time component
+        steer, throttle, duration = action
+
+        action = np.clip([steer, throttle], -1.0, 1.0)
         scaled_action = action.copy()
         scaled_action[1] *= self.max_throttle
+
 
         # set action command on car and wait for some time
         self.controller.control_mode()  # sets the mode to control
         command_set_in_time = self.controller.set_command(scaled_action)  # set action
         assert command_set_in_time, "API blocked python thread for too long"
-        time_elapsed = self.controller.get_time_elapsed()  # time elapsed since last action
+
+        # We implement waiting so that the action can be applied for the predicted duration
+        start_time = time.time()
+        while (time.time() - start_time) < duration:
+            # early termination check for termination criteria while action is being applied
+            if self.should_terminate():
+                break
+            #small sleep timer, to avoid busy waiting
+            time.sleep(min(0.01, duration / 10))
+
+        time_elapsed = self.controller.get_time_elapsed()  # time elapsed since last action. this should be duration after waiting as well
 
         # keep last state
         _last_state = self.state
@@ -266,9 +281,19 @@ class CarEnv(gym.Env):
 
         # check termination conditions
         terminate, terminal_reward = self.terminate(raw_state)
-        return state_with_last_acts, reward, terminate, {'time_elapsed': time_elapsed,
+        return state_with_last_acts, reward, terminate, {'action_duration': duration,
                                                          'terminal_reward': terminal_reward}
 
+    def should_terminate(self):
+        """Check if we should terminate earlier than the applied duration due to constraint violations"""
+        current_raw_state = self.get_state_from_mocap()
+        # Check for goal reached
+        reached_goal = self.reached_goal(current_raw_state, self._goal)
+        # Check for boundary violations
+        out_of_bounds = self.constraint_violation(current_raw_state)
+        # Check for timeout
+        time_out = self.env_steps >= self.max_steps
+        return reached_goal or time_out or out_of_bounds
     def reward(self, last_state, action, state):
         dist, self.reward_params = self._reward_model(
             x=last_state,

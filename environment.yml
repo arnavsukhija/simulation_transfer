@@ -1,0 +1,13 @@
+name: rc_car_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Conda packages (add based on your `requirements.txt`)
+  - numpy
+  - pandas
+  - scipy
+  - tensorflow  # If available in Conda, otherwise use Pip below
+  - pip
+  - pip:
+      - -r pip_requirements.txt  # Pip packages that Conda couldn't install
