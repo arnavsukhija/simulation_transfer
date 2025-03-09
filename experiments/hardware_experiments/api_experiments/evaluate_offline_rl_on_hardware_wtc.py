@@ -151,14 +151,13 @@ def run_with_learned_policy(policy_params,
 
     # wrap using wtc SwitchCostWrapper
     env = IHSwitchCostWrapper(env=env,
-                              num_integrator_steps=250, # 250 episode_steps
-                              min_time_between_switches=1 * env.dt,
-                              max_time_between_switches=10 * env.dt,
+                              min_time_between_switches=1 * 1.0 / 30, # this was the dt used for training
+                              max_time_between_switches=10 * 1.0 / 30,
                               switch_cost=ConstantSwitchCost(value=0.0), #since we are using an evaluation mode, no switch cost
-                              discounting=1.0,
+                              discounting=0.9, #from the setup, don't hardcode
                               time_as_part_of_state=time_as_part_of_state) #this was done while training
 
-    obs = env.reset()
+    obs, _ = env.reset()
     print(obs)
     observations = []
     t_prev = time.time()
