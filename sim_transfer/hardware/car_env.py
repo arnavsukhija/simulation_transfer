@@ -75,7 +75,7 @@ def get_policy(num_frame_stack: int = 3, encode_angle: bool = True):
 
 
 class CarEnv(gym.Env):
-    max_steps: int = 200
+    max_steps: int = 250 # Yarden's parameters
     _goal: np.array = np.array([0.0, 0.0, 0.0])
     _angle_idx: int = 2
     _init_state: np.array = np.array([1.42, -1.04, np.pi]) # np.array([1.4, -1.099, np.pi]) #
@@ -285,7 +285,7 @@ class CarEnv(gym.Env):
 
         # check termination conditions
         terminate, terminal_reward = self.terminate(raw_state)
-        return state_with_last_acts, reward, terminate, {'action_duration': duration,
+        return state_with_last_acts, reward, terminate, {'time_elapsed': time_elapsed,
                                                          'terminal_reward': terminal_reward}
 
     def should_terminate(self):
