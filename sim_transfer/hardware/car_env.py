@@ -75,7 +75,7 @@ def get_policy(num_frame_stack: int = 3, encode_angle: bool = True):
 
 
 class CarEnv(gym.Env):
-    max_steps: int = 250 # Yarden's parameters
+    max_steps: int = 200
     _goal: np.array = np.array([0.0, 0.0, 0.0])
     _angle_idx: int = 2
     _init_state: np.array = np.array([1.42, -1.04, np.pi]) # np.array([1.4, -1.099, np.pi]) #
@@ -98,7 +98,6 @@ class CarEnv(gym.Env):
         self.max_throttle = max_throttle
         import carl
         self.control_frequency = 1 / (0.001 * control_time_ms)
-        self.dt = 0.001 * control_time_ms
         self.max_wait_time = max_wait_time
         self.window_size = window_size
         self.num_frame_stacks = num_frame_stacks
@@ -218,19 +217,17 @@ class CarEnv(gym.Env):
         self.log_mocap_info()
         self.controller_started = False
 
-    ## we adapt this for TaCoS now, by using time component as well
     def step(self, action: np.array) -> Tuple[np.array, float, bool, Dict[str, Any]]:
         """ Performs one step on the real car (sends commands to)
 
         Args:
             action: numpy array of shape (2,) with [steer, throttle]
-            For TaCoS: action: numpy array of shape (3,) with [steer, throttle, duration]
         """
 
         # update time
         self.env_steps += 1
         # check, clip and rescale actions
-        assert np.shape(action) == (2,) #includes the time component
+        assert np.shape(action) == (2,)
         steer, throttle = action
 
         action = np.clip([steer, throttle], -1.0, 1.0)
@@ -243,18 +240,6 @@ class CarEnv(gym.Env):
         command_set_in_time = self.controller.set_command(scaled_action)  # set action
         assert command_set_in_time, "API blocked python thread for too long"
 
-        # Fix me(Arnav): This is probably not needed since with the wtc wrapper, we keep applying the action (so calling this step function),
-        # multiple times for the desired duration.
-        """
-        # We implement waiting so that the action can be applied for the predicted duration
-        start_time = time.time()
-        while (time.time() - start_time) < duration:
-            # early termination check for termination criteria while action is being applied
-            if self.should_terminate():
-                break
-            #small sleep timer, to avoid busy waiting
-            time.sleep(min(0.01, duration / 10))
-        """
         time_elapsed = self.controller.get_time_elapsed()  # time elapsed since last action. this should be duration after waiting as well
 
         # keep last state
@@ -288,16 +273,6 @@ class CarEnv(gym.Env):
         return state_with_last_acts, reward, terminate, {'time_elapsed': time_elapsed,
                                                          'terminal_reward': terminal_reward}
 
-    def should_terminate(self):
-        """Check if we should terminate earlier than the applied duration due to constraint violations"""
-        current_raw_state = self.get_state_from_mocap()
-        # Check for goal reached
-        reached_goal = self.reached_goal(current_raw_state, self._goal)
-        # Check for boundary violations
-        out_of_bounds = self.constraint_violation(current_raw_state)
-        # Check for timeout
-        time_out = self.env_steps >= self.max_steps
-        return reached_goal or time_out or out_of_bounds
     def reward(self, last_state, action, state):
         dist, self.reward_params = self._reward_model(
             x=last_state,
@@ -350,9 +325,6 @@ class CarEnv(gym.Env):
         theta = ((theta + np.pi) % (2 * np.pi)) - np.pi
         return theta
 
-    @property
-    def dt(self):
-        return self.dt
 
     def normalize_theta_in_state(self, state: np.array) -> np.array:
         state[2] = self.normalize_theta(state[2])
