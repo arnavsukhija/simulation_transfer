@@ -13,9 +13,7 @@ from sim_transfer.hardware.car_env import CarEnv
 from sim_transfer.rl.rl_on_offline_data import RLFromOfflineData
 from sim_transfer.sims.util import plot_rc_trajectory
 
-from wtc.utils import discrete_to_continuous_discounting
-from wtc.wrappers.ih_switching_cost import ConstantSwitchCost, IHSwitchCostWrapper
-
+from sim_transfer.wrappers.wtc.ih_switching_cost import IHSwitchCostWrapper, ConstantSwitchCost
 
 ENTITY = 'asukhija'
 
@@ -115,6 +113,7 @@ def run_with_learned_policy(policy_params,
                             run_id: str,
                             reward_config: dict,
                             encode_angle: bool = True,
+                            time_as_part_of_state: bool = True,
                             control_time_ms: float = 32,
                             ):
     """
@@ -124,7 +123,7 @@ def run_with_learned_policy(policy_params,
 
     num_frame_stack = 3
     action_dim = 3 # includes time component now
-    state_dim = 6 + int(encode_angle)
+    state_dim = 6 + int(encode_angle) + int(time_as_part_of_state)
 
     # FIX (Arnav): Adapt this to use PPO params
     rl_from_offline_data = RLFromOfflineData(
@@ -155,9 +154,9 @@ def run_with_learned_policy(policy_params,
                               num_integrator_steps=250, # 250 episode_steps
                               min_time_between_switches=1 * env.dt,
                               max_time_between_switches=10 * env.dt,
-                              switch_cost=ConstantSwitchCost(value=jnp.array(0.0)), #since we are using an evaluation mode, no switch cost
+                              switch_cost=ConstantSwitchCost(value=0.0), #since we are using an evaluation mode, no switch cost
                               discounting=1.0,
-                              time_as_part_of_state=True ) #this was done while training
+                              time_as_part_of_state=time_as_part_of_state) #this was done while training
 
     obs = env.reset()
     print(obs)
@@ -171,14 +170,8 @@ def run_with_learned_policy(policy_params,
     """
     Simulate the car on the learned policy
     """
-    sim_obs = obs
-    sim_stacked_actions = jnp.zeros(shape=(num_frame_stack * action_dim,))
     sim_key = jr.PRNGKey(0)
 
-    all_sim_obs = []
-    all_sim_actions = []
-
-    all_sim_stacked_actions = []
     all_stacked_actions = []
 
     rewards = []
@@ -186,7 +179,7 @@ def run_with_learned_policy(policy_params,
     for i in range(200):
         action = np.array(policy(obs))
         actions.append(action)
-        obs, reward, terminate, info = env.step(None, action)
+        obs, reward, terminate, info = env.step(action)
         t = time.time()
         time_diff = t - t_prev
         t_prev = t

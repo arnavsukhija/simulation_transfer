@@ -98,6 +98,7 @@ class CarEnv(gym.Env):
         self.max_throttle = max_throttle
         import carl
         self.control_frequency = 1 / (0.001 * control_time_ms)
+        self.dt = 0.001 * control_time_ms
         self.max_wait_time = max_wait_time
         self.window_size = window_size
         self.num_frame_stacks = num_frame_stacks
@@ -229,8 +230,8 @@ class CarEnv(gym.Env):
         # update time
         self.env_steps += 1
         # check, clip and rescale actions
-        assert np.shape(action) == (3,) #includes the time component
-        steer, throttle, duration = action
+        assert np.shape(action) == (2,) #includes the time component
+        steer, throttle = action
 
         action = np.clip([steer, throttle], -1.0, 1.0)
         scaled_action = action.copy()
@@ -348,6 +349,10 @@ class CarEnv(gym.Env):
     def normalize_theta(theta: np.array) -> np.ndarray:
         theta = ((theta + np.pi) % (2 * np.pi)) - np.pi
         return theta
+
+    @property
+    def dt(self):
+        return self.dt
 
     def normalize_theta_in_state(self, state: np.array) -> np.array:
         state[2] = self.normalize_theta(state[2])
